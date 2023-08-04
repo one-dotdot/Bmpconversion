@@ -37,6 +37,7 @@
             this.button2 = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
             this.button4 = new System.Windows.Forms.Button();
+            this.button5 = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.panel1.SuspendLayout();
             this.SuspendLayout();
@@ -91,10 +92,10 @@
             // log
             // 
             this.log.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.log.Location = new System.Drawing.Point(9, 179);
+            this.log.Location = new System.Drawing.Point(9, 251);
             this.log.Multiline = true;
             this.log.Name = "log";
-            this.log.Size = new System.Drawing.Size(352, 258);
+            this.log.Size = new System.Drawing.Size(352, 186);
             this.log.TabIndex = 9;
             // 
             // button2
@@ -109,7 +110,7 @@
             // 
             // button3
             // 
-            this.button3.Location = new System.Drawing.Point(170, 74);
+            this.button3.Location = new System.Drawing.Point(133, 150);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(83, 70);
             this.button3.TabIndex = 11;
@@ -119,7 +120,7 @@
             // 
             // button4
             // 
-            this.button4.Location = new System.Drawing.Point(259, 74);
+            this.button4.Location = new System.Drawing.Point(222, 150);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(83, 70);
             this.button4.TabIndex = 12;
@@ -127,11 +128,22 @@
             this.button4.UseVisualStyleBackColor = true;
             this.button4.Click += new System.EventHandler(this.btnConcatenate_Click);
             // 
+            // button5
+            // 
+            this.button5.Location = new System.Drawing.Point(22, 150);
+            this.button5.Name = "button5";
+            this.button5.Size = new System.Drawing.Size(105, 70);
+            this.button5.TabIndex = 13;
+            this.button5.Text = "索引表生成";
+            this.button5.UseVisualStyleBackColor = true;
+            this.button5.Click += new System.EventHandler(this.buttonindex_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(586, 449);
+            this.Controls.Add(this.button5);
             this.Controls.Add(this.button4);
             this.Controls.Add(this.button3);
             this.Controls.Add(this.button2);
@@ -160,6 +172,7 @@
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.Button button4;
+        private System.Windows.Forms.Button button5;
     }
 }
 
