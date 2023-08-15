@@ -363,7 +363,7 @@ namespace Bmpconversion
                     height = BitConverter.ToInt32(dibHeader, 8);
 
                     // Extract bit depth
-                    bitDepth = GetBitDepth(BitConverter.ToInt16(dibHeader, 14));
+                    bitDepth = GetBitDepth(BitConverter.ToInt16(dibHeader, 14), bmpFilePath);
 
                 }
 
@@ -403,14 +403,14 @@ namespace Bmpconversion
             MessageBox.Show("索引表生成成功。");
         }
 
-        private int GetBitDepth(short bitDepthString)
+        private int GetBitDepth(short bitDepthString, string path)
         {
             switch (bitDepthString)
             {
                 case 16:
                     return 4;
                 default:
-                    throw new ArgumentException("不支持的图片位深："+ bitDepthString);
+                    throw new ArgumentException(path + "不支持的图片位深："+ bitDepthString);
             }
         }
 
