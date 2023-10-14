@@ -11,6 +11,9 @@ using System.IO;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
+using System.Security.Cryptography;
+using System.IO.Compression;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Bmpconversion
 {
@@ -206,7 +209,7 @@ namespace Bmpconversion
 
             Array.Sort(hexFilePaths);
 
-            string concatenatedHexFilePath = Path.Combine(directoryPath, "concatenated.bin");
+            string concatenatedHexFilePath = Path.Combine(directoryPath, "SyringePen-Flash-W25N01GVZEIG-Image-V" + "0.7.1.0" + ".bin");
 
             // Check if "index.bin" file exists
             string indexPath = Path.Combine(directoryPath, "index.bin");
@@ -256,7 +259,7 @@ namespace Bmpconversion
                 }
             }
 
-            MessageBox.Show("Bin files concatenated successfully.");
+            MessageBox.Show("Bin文件整合成功。");
         }
         private void ConcatenateHexFiles(string directoryPath)
         {
@@ -421,6 +424,145 @@ namespace Bmpconversion
             int y = int.Parse(position[1], System.Globalization.NumberStyles.Number);
 
             return (x << 16) | y;
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            string directoryPath = Path.GetDirectoryName(Application.ExecutablePath);
+            string[] bmpFilePaths = Directory.GetFiles(directoryPath, "*.bmp");
+
+            Array.Sort(bmpFilePaths);
+
+            foreach (string bmpFilePath in bmpFilePaths)
+            {
+                string hexContent = BmpToHex(bmpFilePath);
+                string swappedHexContent = SwapHexContent(hexContent);
+
+                string hexFilePath = Path.Combine(directoryPath, Path.GetFileNameWithoutExtension(bmpFilePath) + ".bin");
+                byte[] hexBytes = Enumerable.Range(0, swappedHexContent.Length / 2)
+                    .Select(i => Convert.ToByte(swappedHexContent.Substring(i * 2, 2), 16))
+                    .ToArray();
+
+                // 填充剩余的字节为0xFF
+                if (hexBytes.Length > 170 * 320 * 2)
+                {
+                    MessageBox.Show("文件大小超出限制" + bmpFilePath);
+                    return;
+                }
+                int paddingSize = 108 * 1024 - hexBytes.Length;
+                byte[] paddingBytes = Enumerable.Repeat((byte)0xFF, paddingSize).ToArray();
+
+                byte[] finalHexBytes = hexBytes.Concat(paddingBytes).ToArray();
+
+                File.WriteAllBytes(hexFilePath, finalHexBytes);
+            }
+
+            byte[] indexTable = new byte[128 * 1024];
+            int currentIndex = 0;
+
+            foreach (string bmpFilePath in bmpFilePaths)
+            {
+                string fileName = Path.GetFileNameWithoutExtension(bmpFilePath);
+                string[] fileNameParts = fileName.Split('_');
+
+                int imageIndex = int.Parse(fileNameParts[1]);
+                int width;
+                int height;
+                int bitDepth;
+                uint checksum;
+                string positionString = fileNameParts[2];
+
+
+                using (var fs = new FileStream(bmpFilePath, FileMode.Open, FileAccess.Read))
+                using (var br = new BinaryReader(fs))
+                {
+                    // Read BMP header
+                    var header = new byte[14];
+                    br.Read(header, 0, header.Length);
+
+                    // Read DIB header
+                    var dibHeader = new byte[40];
+                    br.Read(dibHeader, 0, dibHeader.Length);
+
+                    // Extract image width and height
+                    width = BitConverter.ToInt32(dibHeader, 4);
+                    height = BitConverter.ToInt32(dibHeader, 8);
+
+                    // Extract bit depth
+                    bitDepth = GetBitDepth(BitConverter.ToInt16(dibHeader, 14), bmpFilePath);
+
+                    // Calculate CRC32 checksum
+                    Crc32 crc32 = new Crc32();
+                    string hexFilePath = Path.Combine(directoryPath, Path.GetFileNameWithoutExtension(bmpFilePath) + ".bin");
+                    byte[] data = File.ReadAllBytes(hexFilePath); // 读取文件内容到字节数组
+                    checksum = crc32.ComputeChecksum(data);
+
+                }
+
+
+                byte[] indexEntry = new byte[32];
+                BitConverter.GetBytes((byte)(imageIndex >> 8)).CopyTo(indexEntry, 0);
+                BitConverter.GetBytes((byte)imageIndex).CopyTo(indexEntry, 1);
+                BitConverter.GetBytes((byte)(width >> 8)).CopyTo(indexEntry, 2);
+                BitConverter.GetBytes((byte)width).CopyTo(indexEntry, 3);
+                BitConverter.GetBytes((byte)(height >> 8)).CopyTo(indexEntry, 4);
+                BitConverter.GetBytes((byte)height).CopyTo(indexEntry, 5);
+                //BitConverter.GetBytes((ushort)((width << 8) | height)).CopyTo(indexEntry, 2);
+                indexEntry[6] = (byte)bitDepth;
+
+                string[] position = positionString.Split('x');
+                int px = int.Parse(position[0], System.Globalization.NumberStyles.Number);
+                int py = int.Parse(position[1], System.Globalization.NumberStyles.Number);
+
+                BitConverter.GetBytes((byte)(px >> 8)).CopyTo(indexEntry, 7);
+                BitConverter.GetBytes((byte)px).CopyTo(indexEntry, 8);
+                BitConverter.GetBytes((byte)(py >> 8)).CopyTo(indexEntry, 9);
+                BitConverter.GetBytes((byte)py).CopyTo(indexEntry, 10);
+
+                byte[] checksumBytes = BitConverter.GetBytes(checksum);
+                Array.Reverse(checksumBytes);
+                checksumBytes.CopyTo(indexEntry, 11);
+
+                string textBoxText = "V" + textver.Text; // 假设文本框的名称为textBox1
+                if(textBoxText.Length >8)
+                {
+                    MessageBox.Show("版本号过长，请保持在8位以内");
+                    return;
+                }
+                else
+                {
+                    byte[] textBytes = Encoding.UTF8.GetBytes(textBoxText);
+                    // 将textBytes复制到indexEntry数组的指定位置
+                    Array.Copy(textBytes, 0, indexEntry, 15, textBytes.Length);
+                }
+
+                indexEntry.CopyTo(indexTable, currentIndex);
+                currentIndex += 32;
+            }
+
+            // Fill remaining bytes with 0xFF
+            for (int i = currentIndex; i < indexTable.Length; i++)
+            {
+                indexTable[i] = 0xFF;
+            }
+
+            string indexFilePath = Path.Combine(directoryPath, "index.bin");
+            File.WriteAllBytes(indexFilePath, indexTable);
+
+            MessageBox.Show("索引表生成成功。");
+
+            //directoryPath = Path.GetDirectoryName(Application.ExecutablePath);
+            //bmpFilePaths = Directory.GetFiles(directoryPath, "*.bmp");
+
+            //Array.Sort(bmpFilePaths);
+
+
+
+            //directoryPath = Path.GetDirectoryName(Application.ExecutablePath);
+            ConcatenateBinFilesWithIndex(directoryPath);
+
+            MessageBox.Show("图片集生成成功。");
+
         }
     }
 }
