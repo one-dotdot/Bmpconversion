@@ -209,7 +209,7 @@ namespace Bmpconversion
 
             Array.Sort(hexFilePaths);
 
-            string concatenatedHexFilePath = Path.Combine(directoryPath, "SyringePen-Flash-W25N01GVZEIG-Image-V" + "0.7.1.0" + ".bin");
+            string concatenatedHexFilePath = Path.Combine(directoryPath, "SyringePen-Flash-W25N01GVZEIG-Image-V" + textver.Text + ".bin");
 
             // Check if "index.bin" file exists
             string indexPath = Path.Combine(directoryPath, "index.bin");
